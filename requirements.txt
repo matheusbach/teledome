@@ -1,0 +1,8 @@
+pyrofork
+tgcrypto-pyrofork
+aiofiles
+aiosqlite
+click
+python-dotenv
+tqdm
+qrcode
