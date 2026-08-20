@@ -22,6 +22,46 @@ from . import __version__
 
 from pyrogram import Client
 
+
+def parse_chat_choices(
+    raw: str, channels: list[tuple[int, str, str]]
+) -> list[tuple[int, str]]:
+    raw = (raw or "").strip()
+    if not raw:
+        return []
+
+    by_index: dict[int, tuple[int, str, str]] = {i + 1: c for i, c in enumerate(channels)}
+    by_id: dict[int, tuple[int, str, str]] = {
+        cid: (cid, title, ctype) for cid, title, ctype in channels
+    }
+
+    selected: list[tuple[int, str]] = []
+    seen: set[int] = set()
+    tokens = [t.strip() for t in raw.split(",") if t.strip()]
+    for token in tokens:
+        try:
+            n = int(token)
+        except ValueError:
+            continue
+
+        if 1 <= n <= len(channels):
+            cid, title, _ = by_index[n]
+        else:
+            entry = by_id.get(n)
+            if entry is None:
+                # Keep the old behavior: allow manual IDs even if not present in the list.
+                cid, title = n, "Unknown"
+            else:
+                cid, title, _ = entry
+
+        if cid in seen:
+            continue
+        seen.add(cid)
+        selected.append((cid, title))
+
+    return selected
+
+
 async def run_async(app: Client):
     # Clean Cache
     clean_cache()
@@ -50,39 +90,7 @@ async def run_async(app: Client):
             type=str,
         )
 
-        def parse_chat_choices(raw: str) -> list[tuple[int, str]]:
-            raw = (raw or "").strip()
-            if not raw:
-                return []
-
-            by_index: dict[int, tuple[int, str, str]] = {i + 1: c for i, c in enumerate(channels)}
-            by_id: dict[int, tuple[int, str, str]] = {cid: (cid, title, ctype) for cid, title, ctype in channels}
-
-            selected: list[tuple[int, str]] = []
-            seen: set[int] = set()
-            tokens = [t.strip() for t in raw.split(",") if t.strip()]
-            for token in tokens:
-                if not token.isdigit():
-                    continue
-                n = int(token)
-                if 1 <= n <= len(channels):
-                    cid, title, _ = by_index[n]
-                else:
-                    entry = by_id.get(n)
-                    if entry is None:
-                        # Keep the old behavior: allow manual IDs even if not present in the list.
-                        cid, title = n, "Unknown"
-                    else:
-                        cid, title, _ = entry
-
-                if cid in seen:
-                    continue
-                seen.add(cid)
-                selected.append((cid, title))
-
-            return selected
-
-        selected_chats = parse_chat_choices(choice)
+        selected_chats = parse_chat_choices(choice, channels)
         if not selected_chats:
             click.echo("Invalid selection.")
             return
