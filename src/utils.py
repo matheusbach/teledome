@@ -129,11 +129,14 @@ async def _get_chats_from_folder(app: Client, folder_id: int | None) -> List[Tup
         last_peer = last.peer
         last_peer_chat_id = getattr(last_peer, "chat_id", None)
         last_peer_channel_id = getattr(last_peer, "channel_id", None)
+        last_peer_user_id = getattr(last_peer, "user_id", None)
 
         if last_peer_channel_id is not None:
             offset_peer = await app.resolve_peer(int(f"-100{last_peer_channel_id}"))
         elif last_peer_chat_id is not None:
             offset_peer = await app.resolve_peer(-int(last_peer_chat_id))
+        elif last_peer_user_id is not None:
+            offset_peer = await app.resolve_peer(int(last_peer_user_id))
         else:
             break
 
