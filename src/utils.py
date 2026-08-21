@@ -205,7 +205,11 @@ async def get_topics(app: Client, chat_id: int) -> List[Tuple[int, str, int]]:
     except Exception as e:
         # If the chat is not a forum, treat it as a normal no-topics case.
         msg = str(e)
-        if "CHAT_NOT_FORUM" in msg or "not a forum" in msg.lower():
+        if (
+            "CHAT_NOT_FORUM" in msg
+            or "CHANNEL_FORUM_MISSING" in msg
+            or "not a forum" in msg.lower()
+        ):
             return []
         print(f"Error getting topics: {e}")
         return []

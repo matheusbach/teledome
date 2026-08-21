@@ -67,22 +67,26 @@ class Downloader:
         # Determine file name
         target_filename = self.get_target_filename(message)
 
+        # Use the message's chat as the storage identity, not the caller's context.
+        message_chat_id = getattr(getattr(message, "chat", None), "id", None)
+        storage_chat_id = message_chat_id if isinstance(message_chat_id, int) else chat_id
+
         # Path structure: downloads/id_cha/[id_topico]/filename
         topic_part = str(topic_id) if topic_id else "no_topic"
-        save_path = DOWNLOADS_DIR / str(chat_id) / topic_part
+        save_path = DOWNLOADS_DIR / str(storage_chat_id) / topic_part
         save_path.mkdir(parents=True, exist_ok=True)
         
         final_path = save_path / target_filename
         
         # Check DB
-        if await self.db.is_processed(message.id, chat_id, topic_id):
+        if await self.db.is_processed(message.id, storage_chat_id, topic_id):
             print(f"Skipping {target_filename}, already processed.")
             return
 
         # print(f"Downloading {target_filename}...") # Removed to avoid clutter with tqdm
         
         # Use CACHE_DIR for temporary file
-        temp_filename = f"temp_{chat_id}_{topic_id}_{message.id}_{target_filename}"
+        temp_filename = f"temp_{storage_chat_id}_{topic_id}_{message.id}_{target_filename}"
         temp_path = CACHE_DIR / temp_filename
 
         # Progress bar
@@ -143,7 +147,7 @@ class Downloader:
                             print(f"Giving up on {target_filename} after size mismatch.")
                             return
 
-                    await self.db.mark_processed(message.id, chat_id, topic_id, str(final_path))
+                    await self.db.mark_processed(message.id, storage_chat_id, topic_id, str(final_path))
                     return
 
                 print(f"Failed to download {target_filename} - download_media returned None")
